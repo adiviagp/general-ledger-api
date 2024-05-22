@@ -1,0 +1,167 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = "mysql://root@localhost:3306/akuntansi"
+}
+
+model User {
+  id               String            @id @unique @default(uuid())
+  username         String            @unique
+  password         String
+  hakAkses         Int
+  refreshTokens    RefreshToken[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  JurnalContainers JurnalContainer[]
+}
+
+model RefreshToken {
+  id          String   @id @unique @default(uuid())
+  hashedToken String
+  userId      String?
+  User        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  revoked     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TenantType {
+  id      Int      @id @default(autoincrement())
+  name    String
+  tenants Tenant[]
+}
+
+model TenantJenis {
+  id       Int        @id @default(autoincrement())
+  name     String
+  Contract Contract[]
+  Tenant   Tenant[]
+}
+
+model Contract {
+  id                Int          @id @default(autoincrement())
+  startDate         DateTime
+  endDate           DateTime
+  tenggatPembayaran DateTime?
+  hargaSewa         BigInt
+  deposit           BigInt?
+  tenantId          Int
+  noGedung          String
+  isNew             String
+  isPaid            String
+  isActive          Boolean?
+  keterangan        String?      @db.Text
+  tenantJenisId     Int
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  tenant            Tenant       @relation(fields: [tenantId], references: [id])
+  tenantJenis       TenantJenis  @relation(fields: [tenantJenisId], references: [id])
+  pembayaran        Pembayaran[]
+  jurnals           Jurnal[]
+}
+
+model Pembayaran {
+  id           Int      @id @default(autoincrement())
+  termin       Int
+  nominal      BigInt
+  tanggalBayar String
+  keterangan   String?
+  contractId   Int
+  contract     Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+model Tenant {
+  id              Int          @id @default(autoincrement())
+  name            String
+  contactName     String?
+  contactPosition String?
+  contactEmail    String?
+  nik             String?
+  npwp            String?
+  noTelp          String?
+  noAkte          String?
+  noNIB           String?
+  tenantTypeId    Int
+  tenantJenisId   Int?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  contracts       Contract[]
+  jurnals         Jurnal[]
+  tenantType      TenantType   @relation(fields: [tenantTypeId], references: [id], onDelete: Cascade)
+  tenantJenis     TenantJenis? @relation(fields: [tenantJenisId], references: [id], onDelete: Cascade)
+}
+
+model Akun {
+  id        Int        @id @default(autoincrement())
+  akun      String     @unique
+  label     String
+  // group   String
+  // posisi  String
+  posisi    String
+  saldoAwal BigInt?
+  jurnals   Jurnal[]
+  labaRugi  Labarugi[]
+  neraca    Neraca[]
+}
+
+model Pemodal {
+  id      Int      @id @default(autoincrement())
+  name    String
+  jurnals Jurnal[]
+}
+
+model JurnalContainer {
+  id         Int      @id @default(autoincrement())
+  tipe       String
+  keterangan String?
+  date       DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  userId     String?
+  tenantId   Int?
+  jurnals    Jurnal[]
+  user       User?    @relation(fields: [userId], references: [id])
+}
+
+model Jurnal {
+  id                Int             @id @default(autoincrement())
+  keterangan        String?
+  debit             BigInt?
+  credit            BigInt?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  akunId            String
+  tenantId          Int?
+  pemodalId         Int?
+  contractId        Int?
+  jurnalContainerId Int
+  date              DateTime
+  bulan             String?
+  tahun             String?
+  akun              Akun            @relation(fields: [akunId], references: [akun], onDelete: Cascade)
+  tenant            Tenant?         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contract          Contract?       @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  pemodal           Pemodal?        @relation(fields: [pemodalId], references: [id], onDelete: Cascade)
+  jurnalContainer   JurnalContainer @relation(fields: [jurnalContainerId], references: [id], onDelete: Cascade)
+}
+
+model Labarugi {
+  id     Int    @id @default(autoincrement())
+  akunId String
+  tipe   String
+  akun   Akun   @relation(fields: [akunId], references: [akun])
+}
+
+model Neraca {
+  id     Int    @id @default(autoincrement())
+  akunId String
+  tipe   String
+  akun   Akun   @relation(fields: [akunId], references: [akun])
+}
